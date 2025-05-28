@@ -195,3 +195,4 @@ plt.legend()
 
 plt.tight_layout()
 plt.savefig(f'{save_folder}/loss&accuracy.png')
+plt.savefig(f'{save_folder}/loss&accuracy.png')
