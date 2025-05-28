@@ -100,7 +100,7 @@ log_file_path = os.path.join(save_folder, 'log.txt')
 with open(log_file_path, 'a') as log_file:
     log_file.write('model: hrnet_w18\n')
     log_file.write(f'description: {DESCRIPTION}\n\n')
-    log_file.write(cfg)
+    log_file.write(str(cfg))
     
 ###################################### training loop #########################################################
 # Metrics tracking
