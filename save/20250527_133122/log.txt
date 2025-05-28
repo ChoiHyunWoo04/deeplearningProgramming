@@ -1,2 +1,0 @@
-model: hrnet_w18
-description: hrnet w18 ½ÇÇè
