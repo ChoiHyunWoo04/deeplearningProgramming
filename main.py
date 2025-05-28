@@ -168,6 +168,11 @@ for epoch in range(cfg.TRAIN.EPOCHS):
     best_valid_loss = min(best_valid_loss, val_loss)
 
 ###################################### save Loss & Accuracy graph / Model weights #########################################################
+# Saving model weights
+if(LOAD_WEIGHT==False):
+    MODEL_PATH = os.path.join(weight_folder, "hrnet_test.pt")
+    torch.save(model.state_dict(), MODEL_PATH)
+
 # Plotting
 epochs = range(1, len(train_losses) + 1)
 
@@ -190,7 +195,3 @@ plt.legend()
 
 plt.tight_layout()
 plt.savefig(f'{save_folder}/loss&accuracy.png')
-
-if(LOAD_WEIGHT==False):
-    MODEL_PATH = os.path.join(weight_folder, "hrnet_test.pt")
-    torch.save(model.state_dict(), MODEL_PATH)
