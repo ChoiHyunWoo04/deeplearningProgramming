@@ -12,7 +12,7 @@ _C.BASE = [""]
 # -----------------------------------------------------------------------------
 _C.DATA = CN()
 # Batch size for a single GPU, could be overwritten by command line argument
-_C.DATA.BATCH_SIZE = 128
+_C.DATA.BATCH_SIZE = 128 # default: 128
 # Path to dataset, could be overwritten by command line argument
 _C.DATA.DATA_PATH = ""
 # Dataset name
@@ -29,7 +29,7 @@ _C.DATA.CACHE_MODE = "part"
 # Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.
 _C.DATA.PIN_MEMORY = True
 # Number of data loading threads
-_C.DATA.NUM_WORKERS = 4
+_C.DATA.NUM_WORKERS = 4 # default: 8
 
 # -----------------------------------------------------------------------------
 # Model settings
@@ -88,7 +88,7 @@ _C.MODEL.HRNET.STAGE4.BLOCK = "BASIC"
 # -----------------------------------------------------------------------------
 _C.TRAIN = CN()
 _C.TRAIN.START_EPOCH = 0
-_C.TRAIN.EPOCHS = 300
+_C.TRAIN.EPOCHS = 150 # default: 300
 _C.TRAIN.WARMUP_EPOCHS = 20
 _C.TRAIN.WEIGHT_DECAY = 0.05
 _C.TRAIN.BASE_LR = 5e-4

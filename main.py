@@ -9,6 +9,7 @@ from torchvision.datasets.cifar import CIFAR100
 from torchvision.transforms import ToTensor
 
 from config.config import get_config
+from utils.earlystop import EarlyStop
 from models.hrnet import HighResolutionNet
 
 import torch
@@ -53,8 +54,8 @@ print(device)
 train = CIFAR100(root='./data', train=True, download=True, transform=ToTensor())
 test = CIFAR100(root='./data', train=False, download=True, transform=ToTensor())
 
-train_loader = DataLoader(train, batch_size=32, shuffle=True)
-test_loader = DataLoader(test, batch_size=32, shuffle=False)
+train_loader = DataLoader(train, batch_size=128, shuffle=True)
+test_loader = DataLoader(test, batch_size=128, shuffle=False)
 
 ###################################### model setting ##############################################################
 class Args:
@@ -100,9 +101,12 @@ log_file_path = os.path.join(save_folder, 'log.txt')
 with open(log_file_path, 'a') as log_file:
     log_file.write('model: hrnet_w18\n')
     log_file.write(f'description: {DESCRIPTION}\n\n')
-    log_file.write(cfg)
+    log_file.write(str(cfg) + '\n\n')
     
 ###################################### training loop #########################################################
+earlystop = EarlyStop()
+best_valid_loss = float('inf')
+
 # Metrics tracking
 train_losses, test_losses = [], []
 train_accuracies, test_accuracies = [], []
@@ -110,7 +114,7 @@ train_accuracies, test_accuracies = [], []
 for epoch in range(cfg.TRAIN.EPOCHS):
     model.train()
     running_loss, correct, total = 0.0, 0, 0
-    for inputs, labels in tqdm(train_loader, desc=f"Epoch {epoch+1}/{cfg.TRAIN.EPOCHS} - Train"):
+    for inputs, labels in tqdm(train_loader, desc=f"[Epoch {epoch+1}/{cfg.TRAIN.EPOCHS}] - Train"):
         inputs, labels = inputs.to(device), labels.to(device)
 
         optimizer.zero_grad()
@@ -150,13 +154,22 @@ for epoch in range(cfg.TRAIN.EPOCHS):
 
     scheduler.step()
 
-    print(f"Epoch [{epoch+1}/{cfg.TRAIN.EPOCHS}] "
-          f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}% "
-          f"Valid Loss: {val_loss:.4f}, Valid Acc: {val_acc:.2f}%")
+    # save epoch info
+    result = f"Epoch [{epoch+1}/{cfg.TRAIN.EPOCHS}] Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}% | Valid Loss: {val_loss:.4f}, Valid Acc: {val_acc:.2f}% | Early Stop Count: {earlystop}"
+    print(result)
+    with open(log_file_path, 'a') as log_file:
+        log_file.write(result + '\n')
+        
+    # Early Stopping
+    if not earlystop.update_patience(best_valid_loss, val_loss):
+        print("Early Stop.")
+        break
+
+    best_valid_loss = min(best_valid_loss, val_loss)
 
 ###################################### save Loss & Accuracy graph / Model weights #########################################################
 # Plotting
-epochs = range(1, cfg.TRAIN.EPOCHS + 1)
+epochs = range(1, len(train_losses) + 1)
 
 plt.figure(figsize=(12, 5))
 plt.subplot(1, 2, 1)
