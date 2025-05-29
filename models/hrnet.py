@@ -224,7 +224,7 @@ class HighResolutionNet(nn.Module):
     def __init__(self, cfg, num_classes=100, **kwargs):
         super(HighResolutionNet, self).__init__()
 
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1, bias=False) # 기존 strid=2, branch 4의 feature map size가 1이 되는 상황을 방지하고자 함. 경량화 모델 후 수정해서 테스트 해보기
         self.bn1 = nn.BatchNorm2d(64, momentum=BN_MOMENTUM)
         self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(64, momentum=BN_MOMENTUM)

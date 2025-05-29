@@ -32,7 +32,7 @@ def set_seed(seed=0):
 set_seed()
 
 ###################################### model setting #############################################################
-DESCRIPTION = "hrnet w18 experiment()" # 예시: 실험 내용 기록용(한글 작성시 깨짐)
+DESCRIPTION = "hrnet_w18_small_v2, data argumentation(AutoAugmentPolicy.CIFAR10), Adapt drop path, " # 예시: 실험 내용 기록용(한글 작성시 깨짐)
 
 LOAD_WEIGHT = False # 기존 모델 가중치를 가져올지 여부
 WEIGHT_PATH = "./save/20250220_152155/weight/model_epoch_200.pt" # 기존 모델 가중치 경로
@@ -67,12 +67,12 @@ test_transform = transforms.Compose([
 train = CIFAR100(root='./data', train=True, download=True, transform=train_transform)
 test = CIFAR100(root='./data', train=False, download=True, transform=test_transform)
 
-train_loader = DataLoader(train, batch_size=512, shuffle=True)
-test_loader = DataLoader(test, batch_size=512, shuffle=False)
+train_loader = DataLoader(train, batch_size=256, shuffle=True)
+test_loader = DataLoader(test, batch_size=256, shuffle=False)
 
 ###################################### model setting ##############################################################
 class Args:
-    cfg = "config/hrnet_w18.yaml"
+    cfg = "config/hrnet_w18_small_v2.yaml"
     opts = None
     batch_size = None
     data_path = None
@@ -112,7 +112,7 @@ log_file_path = os.path.join(save_folder, 'log.txt')
 
 # log.txt에 모델 정보 기록
 with open(log_file_path, 'a') as log_file:
-    log_file.write('model: hrnet_w18\n')
+    log_file.write('model: hrnet_w18_small_v2\n')
     log_file.write(f'description: {DESCRIPTION}\n\n')
     log_file.write(str(cfg) + '\n\n')
     
@@ -127,7 +127,7 @@ train_accuracies, test_accuracies = [], []
 for epoch in range(cfg.TRAIN.EPOCHS):
     model.train()
     running_loss, correct, total = 0.0, 0, 0
-    for inputs, labels in tqdm(train_loader, desc=f"[Epoch {epoch+1}/{cfg.TRAIN.EPOCHS}] - Train"):
+    for inputs, labels in tqdm(train_loader):
         inputs, labels = inputs.to(device), labels.to(device)
 
         optimizer.zero_grad()
@@ -150,7 +150,7 @@ for epoch in range(cfg.TRAIN.EPOCHS):
     model.eval()
     val_loss, correct, total = 0.0, 0, 0
     with torch.no_grad():
-        for inputs, labels in tqdm(test_loader, desc=f"Epoch {epoch+1}/{cfg.TRAIN.EPOCHS} - Valid"):
+        for inputs, labels in tqdm(test_loader):
             inputs, labels = inputs.to(device), labels.to(device)
             outputs = model(inputs)
             loss = criterion(outputs, labels)
