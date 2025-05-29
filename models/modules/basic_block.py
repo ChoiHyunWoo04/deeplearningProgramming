@@ -10,6 +10,7 @@ import pdb
 import logging
 import torch.nn as nn
 
+from models.modules.drop_path import DropPath
 
 BN_MOMENTUM = 0.1
 
@@ -43,6 +44,9 @@ class BasicBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
         self.downsample = downsample
         self.stride = stride
+        
+        drop_path = 0.2
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
     def forward(self, x):
         residual = x
@@ -56,6 +60,9 @@ class BasicBlock(nn.Module):
 
         if self.downsample is not None:
             residual = self.downsample(x)
+            
+        # drop path 적용하여 overfitting 줄이고자 함, drop path 적용되면 out이 off(0)됨.
+        out = self.drop_path(out)
 
         out += residual
         out = self.relu(out)

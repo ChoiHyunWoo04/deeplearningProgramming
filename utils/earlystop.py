@@ -1,6 +1,6 @@
 class EarlyStop:
     # 실패 민감도 (인내도) 설정 필요시 수정해주세요
-    LIMIT_PATIENCE = 15
+    LIMIT_PATIENCE = 10
     
     def __init__(self) -> None:
         self.patience = 0

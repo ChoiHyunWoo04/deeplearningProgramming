@@ -51,7 +51,7 @@ _C.MODEL.DROP_PATH_RATE = 0.1
 # Label Smoothing
 _C.MODEL.LABEL_SMOOTHING = 0.1
 
-# HRNet parameters
+# HRNet parameters / .yaml 파일의 파라미터들 중 설정되지 않은 파라미터들에 default 값을 주는 역할
 _C.MODEL.HRNET = CN()
 _C.MODEL.HRNET.DROP_PATH_RATE = 0.2
 
