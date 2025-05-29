@@ -54,8 +54,8 @@ print(device)
 train = CIFAR100(root='./data', train=True, download=True, transform=ToTensor())
 test = CIFAR100(root='./data', train=False, download=True, transform=ToTensor())
 
-train_loader = DataLoader(train, batch_size=512, shuffle=True)
-test_loader = DataLoader(test, batch_size=512, shuffle=False)
+train_loader = DataLoader(train, batch_size=128, shuffle=True)
+test_loader = DataLoader(test, batch_size=128, shuffle=False)
 
 ###################################### model setting ##############################################################
 class Args:
