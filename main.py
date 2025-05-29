@@ -52,15 +52,20 @@ device = get_recommended_device()
 print(device)
 
 ###################################### data setting ###########################################################
-train = CIFAR100(root='./data', train=True, download=True, transform=ToTensor())
-test = CIFAR100(root='./data', train=False, download=True, transform=ToTensor())
-
 mean, std = (0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)
 train_transform = transforms.Compose([
     transforms.AutoAugment(policy=transforms.AutoAugmentPolicy.CIFAR100),
     transforms.ToTensor(),
     transforms.Normalize(mean, std)
 ])
+
+test_transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean, std)
+])
+
+train = CIFAR100(root='./data', train=True, download=True, transform=train_transform)
+test = CIFAR100(root='./data', train=False, download=True, transform=test_transform)
 
 train_loader = DataLoader(train, batch_size=512, shuffle=True)
 test_loader = DataLoader(test, batch_size=512, shuffle=False)
