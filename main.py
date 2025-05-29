@@ -54,7 +54,7 @@ print(device)
 ###################################### data setting ###########################################################
 mean, std = (0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)
 train_transform = transforms.Compose([
-    transforms.AutoAugment(policy=transforms.AutoAugmentPolicy.CIFAR100),
+    transforms.AutoAugment(policy=transforms.AutoAugmentPolicy.CIFAR10),
     transforms.ToTensor(),
     transforms.Normalize(mean, std)
 ])
