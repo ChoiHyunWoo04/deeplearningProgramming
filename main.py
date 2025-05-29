@@ -11,6 +11,7 @@ from torchvision.transforms import ToTensor
 from config.config import get_config
 from utils.earlystop import EarlyStop
 from models.hrnet import HighResolutionNet
+import torchvision.transforms as transforms
 
 import torch
 import torch.nn as nn
@@ -53,6 +54,13 @@ print(device)
 ###################################### data setting ###########################################################
 train = CIFAR100(root='./data', train=True, download=True, transform=ToTensor())
 test = CIFAR100(root='./data', train=False, download=True, transform=ToTensor())
+
+mean, std = (0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)
+train_transform = transforms.Compose([
+    transforms.AutoAugment(policy=transforms.AutoAugmentPolicy.CIFAR100),
+    transforms.ToTensor(),
+    transforms.Normalize(mean, std)
+])
 
 train_loader = DataLoader(train, batch_size=512, shuffle=True)
 test_loader = DataLoader(test, batch_size=512, shuffle=False)
@@ -170,7 +178,7 @@ for epoch in range(cfg.TRAIN.EPOCHS):
 ###################################### save Loss & Accuracy graph / Model weights #########################################################
 # Saving model weights
 if(LOAD_WEIGHT==False):
-    MODEL_PATH = os.path.join(weight_folder, "hrnet_test.pt")
+    MODEL_PATH = os.path.join(weight_folder, "hrnet_test.pth")
     torch.save(model.state_dict(), MODEL_PATH)
 
 # Plotting
