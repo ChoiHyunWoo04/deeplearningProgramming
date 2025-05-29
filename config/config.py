@@ -88,7 +88,7 @@ _C.MODEL.HRNET.STAGE4.BLOCK = "BASIC"
 # -----------------------------------------------------------------------------
 _C.TRAIN = CN()
 _C.TRAIN.START_EPOCH = 0
-_C.TRAIN.EPOCHS = 150 # default: 300
+_C.TRAIN.EPOCHS = 200 # default: 300
 _C.TRAIN.WARMUP_EPOCHS = 20
 _C.TRAIN.WEIGHT_DECAY = 0.05
 _C.TRAIN.BASE_LR = 5e-4
