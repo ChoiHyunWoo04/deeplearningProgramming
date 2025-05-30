@@ -1,0 +1,104 @@
+model: hrnet_custom
+description: (blocks 2, channels 32) data argumentation(AutoAugmentPolicy.CIFAR10), Adapt drop path, 
+
+AMP_OPT_LEVEL: O1
+BASE: ['']
+DATA:
+  BATCH_SIZE: 128
+  CACHE_MODE: part
+  DATASET: cifar
+  DATA_PATH: 
+  IMG_SIZE: 32
+  INTERPOLATION: bicubic
+  NUM_WORKERS: 4
+  PIN_MEMORY: True
+  ZIP_MODE: False
+EVAL_MODE: False
+LOCAL_RANK: 0
+MODEL:
+  DROP_PATH_RATE: 0.1
+  DROP_RATE: 0.0
+  HRNET:
+    DROP_PATH_RATE: 0.2
+    STAGE1:
+      BLOCK: BOTTLENECK
+      NUM_BLOCKS: [2]
+      NUM_BRANCHES: 1
+      NUM_CHANNELS: [64]
+      NUM_MODULES: 1
+    STAGE2:
+      BLOCK: BASIC
+      NUM_BLOCKS: [2, 2]
+      NUM_BRANCHES: 2
+      NUM_CHANNELS: [32, 64]
+      NUM_MODULES: 1
+    STAGE3:
+      BLOCK: BASIC
+      NUM_BLOCKS: [2, 2, 2]
+      NUM_BRANCHES: 3
+      NUM_CHANNELS: [32, 64, 128]
+      NUM_MODULES: 3
+    STAGE4:
+      BLOCK: BASIC
+      NUM_BLOCKS: [2, 2, 2, 2]
+      NUM_BRANCHES: 4
+      NUM_CHANNELS: [32, 64, 128, 256]
+      NUM_MODULES: 2
+  LABEL_SMOOTHING: 0.1
+  NAME: hrnet_w18_small_v2
+  NUM_CLASSES: 100
+  RESUME: 
+  RESUME_ONLY_MODEL: False
+  TYPE: hrnet
+OUTPUT: hrnet_w18_small_v2\default
+PRINT_FREQ: 10
+SAVE_FREQ: 1
+SEED: 0
+TAG: default
+TEST:
+  CROP: True
+THROUGHPUT_MODE: False
+TRAIN:
+  ACCUMULATION_STEPS: 0
+  AUTO_RESUME: True
+  BASE_LR: 0.0005
+  CLIP_GRAD: 5.0
+  EPOCHS: 200
+  LR_SCHEDULER:
+    DECAY_EPOCHS: 30
+    DECAY_RATE: 0.1
+    NAME: cosine
+  MIN_LR: 5e-06
+  OPTIMIZER:
+    BETAS: (0.9, 0.999)
+    EPS: 1e-08
+    MOMENTUM: 0.9
+    NAME: adamw
+  START_EPOCH: 0
+  USE_CHECKPOINT: False
+  WARMUP_EPOCHS: 20
+  WARMUP_LR: 5e-07
+  WEIGHT_DECAY: 0.05
+
+Epoch [1/200] Train Loss: 4.3800, Train Acc: 4.25% | Valid Loss: 4.0107, Valid Acc: 9.46% | Early Stop Count: current patience : 0
+Epoch [2/200] Train Loss: 3.9966, Train Acc: 9.43% | Valid Loss: 3.7046, Valid Acc: 15.29% | Early Stop Count: current patience : 0
+Epoch [3/200] Train Loss: 3.7354, Train Acc: 13.77% | Valid Loss: 3.3310, Valid Acc: 19.07% | Early Stop Count: current patience : 0
+Epoch [4/200] Train Loss: 3.4678, Train Acc: 17.93% | Valid Loss: 2.9644, Valid Acc: 26.06% | Early Stop Count: current patience : 0
+Epoch [5/200] Train Loss: 3.2382, Train Acc: 21.97% | Valid Loss: 2.8165, Valid Acc: 29.34% | Early Stop Count: current patience : 0
+Epoch [6/200] Train Loss: 3.0425, Train Acc: 25.58% | Valid Loss: 2.6974, Valid Acc: 31.95% | Early Stop Count: current patience : 0
+Epoch [7/200] Train Loss: 2.8504, Train Acc: 29.08% | Valid Loss: 2.6910, Valid Acc: 33.18% | Early Stop Count: current patience : 0
+Epoch [8/200] Train Loss: 2.6845, Train Acc: 32.37% | Valid Loss: 2.4358, Valid Acc: 37.96% | Early Stop Count: current patience : 0
+Epoch [9/200] Train Loss: 2.5510, Train Acc: 35.46% | Valid Loss: 2.2875, Valid Acc: 40.43% | Early Stop Count: current patience : 0
+Epoch [10/200] Train Loss: 2.3831, Train Acc: 38.74% | Valid Loss: 2.2085, Valid Acc: 42.25% | Early Stop Count: current patience : 0
+Epoch [11/200] Train Loss: 2.2484, Train Acc: 42.04% | Valid Loss: 2.1821, Valid Acc: 42.86% | Early Stop Count: current patience : 0
+Epoch [12/200] Train Loss: 2.1262, Train Acc: 44.58% | Valid Loss: 2.0932, Valid Acc: 44.46% | Early Stop Count: current patience : 0
+Epoch [13/200] Train Loss: 1.9859, Train Acc: 47.59% | Valid Loss: 2.0965, Valid Acc: 45.71% | Early Stop Count: current patience : 0
+Epoch [14/200] Train Loss: 1.8836, Train Acc: 50.12% | Valid Loss: 2.1040, Valid Acc: 46.18% | Early Stop Count: current patience : 1
+Epoch [15/200] Train Loss: 1.7720, Train Acc: 53.08% | Valid Loss: 2.1056, Valid Acc: 46.14% | Early Stop Count: current patience : 2
+Epoch [16/200] Train Loss: 1.6483, Train Acc: 55.88% | Valid Loss: 2.1504, Valid Acc: 46.34% | Early Stop Count: current patience : 3
+Epoch [17/200] Train Loss: 1.5351, Train Acc: 58.91% | Valid Loss: 2.0958, Valid Acc: 47.49% | Early Stop Count: current patience : 4
+Epoch [18/200] Train Loss: 1.4501, Train Acc: 61.45% | Valid Loss: 2.2462, Valid Acc: 45.69% | Early Stop Count: current patience : 5
+Epoch [19/200] Train Loss: 1.3576, Train Acc: 64.02% | Valid Loss: 2.1592, Valid Acc: 47.88% | Early Stop Count: current patience : 6
+Epoch [20/200] Train Loss: 1.2566, Train Acc: 66.37% | Valid Loss: 2.1890, Valid Acc: 47.78% | Early Stop Count: current patience : 7
+Epoch [21/200] Train Loss: 1.1892, Train Acc: 68.24% | Valid Loss: 2.2154, Valid Acc: 48.22% | Early Stop Count: current patience : 8
+Epoch [22/200] Train Loss: 1.1292, Train Acc: 70.16% | Valid Loss: 2.2654, Valid Acc: 48.12% | Early Stop Count: current patience : 9
