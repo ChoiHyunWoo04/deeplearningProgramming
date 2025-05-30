@@ -32,7 +32,7 @@ def set_seed(seed=0):
 set_seed()
 
 ###################################### model setting #############################################################
-DESCRIPTION = "hrnet_w18_small_v2, data argumentation(AutoAugmentPolicy.CIFAR10), Adapt drop path, " # 예시: 실험 내용 기록용(한글 작성시 깨짐)
+DESCRIPTION = "(blocks 2, channels 32, module 1 1 2 1, res=[32, 16, 8, 4]) data argumentation(AutoAugmentPolicy.CIFAR10), Adapt drop path, " # 예시: 실험 내용 기록용(한글 작성시 깨짐)
 
 LOAD_WEIGHT = False # 기존 모델 가중치를 가져올지 여부
 WEIGHT_PATH = "./save/20250220_152155/weight/model_epoch_200.pt" # 기존 모델 가중치 경로
@@ -72,7 +72,7 @@ test_loader = DataLoader(test, batch_size=256, shuffle=False)
 
 ###################################### model setting ##############################################################
 class Args:
-    cfg = "config/hrnet_w18_small_v2.yaml"
+    cfg = "config/hrnet_custom.yaml"
     opts = None
     batch_size = None
     data_path = None
@@ -112,7 +112,7 @@ log_file_path = os.path.join(save_folder, 'log.txt')
 
 # log.txt에 모델 정보 기록
 with open(log_file_path, 'a') as log_file:
-    log_file.write('model: hrnet_w18_small_v2\n')
+    log_file.write('model: hrnet_custom\n')
     log_file.write(f'description: {DESCRIPTION}\n\n')
     log_file.write(str(cfg) + '\n\n')
     
