@@ -8,3 +8,9 @@
     * Drop Path in BasicBlock - Epoch [35/200] Train Loss: 0.8683, Train Acc: 77.70% | Valid Loss: 2.4806, Valid Acc: 47.85% (20250529_220227)
 
 ## smaller model(hrnet_w18_small_v2)
+
+## base model(dense_cifar)
+
+## larger model(dense_custom)
+* 기존 dense_cifar 함수에서 growth를 6, 10, 16, 20, 24로 변경해가며 실험
+* 기존 dense_cifar는 Cifar10 데이터셋 기준 모델이므로 Cifar100에 맞는 모델은 growth가 더 높을 때 성능이 더 좋아짐.

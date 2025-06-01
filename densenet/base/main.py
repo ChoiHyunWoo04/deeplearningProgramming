@@ -10,8 +10,7 @@ from torchvision.transforms import ToTensor
 
 from utils.earlystop import EarlyStop
 import torchvision.transforms as transforms
-from densenet import densenet_custom
-from data_augmentation import Cutout
+from densenet import densenet_cifar
 
 import torch
 import torch.nn as nn
@@ -32,7 +31,7 @@ def set_seed(seed=0):
 set_seed()
 
 ###################################### model setting #############################################################
-DESCRIPTION = "DenseNet growth=24, data argumentation(custom, cutout(nholes=1, size=8))" # 예시: 실험 내용 기록용(한글 작성시 깨짐)
+DESCRIPTION = "DenseNet121, data argumentation(custom)" # 예시: 실험 내용 기록용(한글 작성시 깨짐)
 
 LOAD_WEIGHT = False # 기존 모델 가중치를 가져올지 여부
 WEIGHT_PATH = "./densenet/save/20250220_152155/weight/model_epoch_200.pt" # 기존 모델 가중치 경로
@@ -52,41 +51,21 @@ device = get_recommended_device()
 print(device)
 
 ###################################### data setting ###########################################################
-'''train_transform = transforms.Compose([
-    transforms.AutoAugment(policy=transforms.AutoAugmentPolicy.CIFAR10),
-    transforms.ToTensor(),
-    transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
-])'''
 
-train_transform = transforms.Compose([
-    transforms.RandomCrop(32, padding=3),  # random crop + padding
-    transforms.RandomHorizontalFlip(p=0.5),      # horizontal flip
-    transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3),  # color jitter (-30% ~ +30%)
-    transforms.RandomRotation(15),         # random rotation (-15도 ~ + 15도)
-    transforms.ToTensor(),                 # convert to tensor (img.shape를 (C, H, W)로 바꿔줌)
-    transforms.RandomApply([Cutout(n_holes=1, length=8)], p=0.25), # Cutout 기법 확률적으로 적용
-    transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))  # CIFAR-100 mean/std
-])
-
-test_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
-])
-
-train = CIFAR100(root='./data', train=True, download=True, transform=train_transform)
-test = CIFAR100(root='./data', train=False, download=True, transform=test_transform)
+train = CIFAR100(root='./data', train=True, download=True, transform=ToTensor())
+test = CIFAR100(root='./data', train=False, download=True, transform=ToTensor())
 
 train_loader = DataLoader(train, batch_size=256, shuffle=True)
 test_loader = DataLoader(test, batch_size=256, shuffle=False)
 
 ###################################### model setting ##############################################################
 
-model = densenet_custom()
+model = densenet_cifar()
 model = model.to(device)
 
 ###################################### train parameter setting #########################################################
 cfg = {
-    'epoch': 50,
+    'epoch': 100,
     'lr': 5e-4,
     'weight_decay': 5e-4
 }
@@ -109,15 +88,13 @@ log_file_path = os.path.join(save_folder, 'log.txt')
 
 # log.txt에 모델 정보 기록
 with open(log_file_path, 'a') as log_file:
-    log_file.write('model: Dense Net custom\n')
+    log_file.write('model: Dense Net Cifar\n')
     log_file.write(f'description: {DESCRIPTION}\n\n')
     log_file.write(str(cfg) + '\n\n')
     
 ###################################### training loop #########################################################
 earlystop = EarlyStop()
 best_valid_loss = float('inf')
-
-best_valid_acc = 0.0
 
 # Metrics tracking
 train_losses, test_losses = [], []
@@ -171,12 +148,6 @@ for epoch in range(cfg['epoch']):
     print(result)
     with open(log_file_path, 'a') as log_file:
         log_file.write(result + '\n')
-    
-    # Save best model
-    if val_acc > best_valid_acc:
-        best_valid_acc = val_acc
-        torch.save(model.state_dict(), weight_folder + '/best_weight.pth')
-        print(f'--> Best model saved at epoch {epoch+1} with acc {best_valid_acc:.2f}')
         
     # Early Stopping
     if not earlystop.update_patience(best_valid_loss, val_loss):
@@ -184,11 +155,11 @@ for epoch in range(cfg['epoch']):
         break
 
     best_valid_loss = min(best_valid_loss, val_loss)
-    
+
 ###################################### save Loss & Accuracy graph / Model weights #########################################################
 # Saving model weights
 if(LOAD_WEIGHT==False):
-    MODEL_PATH = os.path.join(weight_folder, "DenseNet_24.pth")
+    MODEL_PATH = os.path.join(weight_folder, "DenseNet121.pth")
     torch.save(model.state_dict(), MODEL_PATH)
 
 # Plotting

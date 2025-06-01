@@ -5,17 +5,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from functions.droppath import DropPath
-
 
 class Bottleneck(nn.Module):
-    def __init__(self, in_planes, growth_rate, drop_rate=0.0):
+    def __init__(self, in_planes, growth_rate):
         super(Bottleneck, self).__init__()
         self.bn1 = nn.BatchNorm2d(in_planes)
         self.conv1 = nn.Conv2d(in_planes, 4*growth_rate, kernel_size=1, bias=False)
         self.bn2 = nn.BatchNorm2d(4*growth_rate)
         self.conv2 = nn.Conv2d(4*growth_rate, growth_rate, kernel_size=3, padding=1, bias=False)
-        
+
     def forward(self, x):
         out = self.conv1(F.relu(self.bn1(x)))
         out = self.conv2(F.relu(self.bn2(out)))
@@ -31,7 +29,7 @@ class Transition(nn.Module):
 
     def forward(self, x):
         out = self.conv(F.relu(self.bn(x)))
-        out = F.avg_pool2d(out, 2) # conv2(stride=2)로 해보면 어떨까?
+        out = F.avg_pool2d(out, 2)
         return out
 
 
@@ -82,7 +80,7 @@ class DenseNet(nn.Module):
         out = self.dense4(out)
         out = F.avg_pool2d(F.relu(self.bn(out)), 4)
         out = out.view(out.size(0), -1)
-        out = self.linear(out) # linear층을 2층으로 쌓으면 어떨까?
+        out = self.linear(out)
         return out
 
 def DenseNet121():
@@ -99,9 +97,6 @@ def DenseNet161():
 
 def densenet_cifar():
     return DenseNet(Bottleneck, [6,12,24,16], growth_rate=12)
-
-def densenet_custom():
-    return DenseNet(Bottleneck, [6,12,24,16], growth_rate=24)
 
 def test():
     net = densenet_cifar()
