@@ -102,11 +102,3 @@ def densenet_cifar():
 
 def densenet_custom():
     return DenseNet(Bottleneck, [6,12,24,16], growth_rate=24)
-
-def test():
-    net = densenet_cifar()
-    x = torch.randn(1,3,32,32)
-    y = net(x)
-    print(y)
-
-# test()
