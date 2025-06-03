@@ -10,7 +10,7 @@ from torchvision.transforms import ToTensor
 
 from utils.earlystop import EarlyStop
 import torchvision.transforms as transforms
-from densenet import densenet_custom, DenseNet121
+from wrn import wrn_28_10
 from data_augmentation import Cutout
 
 import torch
@@ -32,7 +32,7 @@ def set_seed(seed=0):
 set_seed()
 
 ###################################### model setting #############################################################
-DESCRIPTION = "DenseNet growth=24, data argumentation(custom, cutout(nholes=1, size=8))" # 예시: 실험 내용 기록용(한글 작성시 깨짐)
+DESCRIPTION = "wrn_28_10, data argumentation(custom, cutout(nholes=1, size=8))" # 예시: 실험 내용 기록용(한글 작성시 깨짐)
 
 LOAD_WEIGHT = False # 기존 모델 가중치를 가져올지 여부
 WEIGHT_PATH = "./densenet/save/20250602_153650/weight/DenseNet_24.pth" # 기존 모델 가중치 경로
@@ -76,12 +76,12 @@ test_transform = transforms.Compose([
 train = CIFAR100(root='./data', train=True, download=True, transform=train_transform)
 test = CIFAR100(root='./data', train=False, download=True, transform=test_transform)
 
-train_loader = DataLoader(train, batch_size=256, shuffle=True)
-test_loader = DataLoader(test, batch_size=256, shuffle=False)
+train_loader = DataLoader(train, batch_size=128, shuffle=True)
+test_loader = DataLoader(test, batch_size=128, shuffle=False)
 
 ###################################### model setting ##############################################################
 
-model = densenet_custom()
+model = wrn_28_10()
 model = model.to(device)
 
 # 기존의 모델 로드할 경우
@@ -93,7 +93,7 @@ if LOAD_WEIGHT:
 
 ###################################### train parameter setting #########################################################
 cfg = {
-    'epoch': 200, # epoch 크기가 달라지면 CosineAnnealingLR 부분도 달라짐..!
+    'epoch': 100, # epoch 크기가 달라지면 CosineAnnealingLR 부분도 달라짐..!
     'lr': 0.1,
     'weight_decay': 5e-4
 }
@@ -109,15 +109,15 @@ scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg['epoch'])
 
 timestamp = datetime.now().strftime('%m%d_%H%M')
 
-save_folder = f"./densenet/save/{timestamp}" 
-weight_folder = f"./densenet/save/{timestamp}/weight"
+save_folder = f"./wideResnet/save/{timestamp}" 
+weight_folder = f"./wideResnet/save/{timestamp}/weight"
 if (LOAD_WEIGHT==False):  
     os.makedirs(weight_folder, exist_ok=True) # 현재 시간으로 폴더 생성
     log_file_path = os.path.join(save_folder, 'log.txt')
 
     # log.txt에 모델 정보 기록
     with open(log_file_path, 'a') as log_file:
-        log_file.write('model: Dense Net custom\n')
+        log_file.write('model: WideResNet_28_10\n')
         log_file.write(f'description: {DESCRIPTION}\n\n')
         log_file.write(str(cfg) + '\n\n')
     

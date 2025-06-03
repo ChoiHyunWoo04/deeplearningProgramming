@@ -8,10 +8,8 @@ import matplotlib.pyplot as plt
 from torchvision.datasets.cifar import CIFAR100
 from torchvision.transforms import ToTensor
 
-from utils.earlystop import EarlyStop
 import torchvision.transforms as transforms
-from densenet import densenet_custom, DenseNet121
-from data_augmentation import Cutout
+import torchvision.models as models
 
 import torch
 import torch.nn as nn
@@ -32,7 +30,7 @@ def set_seed(seed=0):
 set_seed()
 
 ###################################### model setting #############################################################
-DESCRIPTION = "DenseNet growth=24, data argumentation(custom, cutout(nholes=1, size=8))" # 예시: 실험 내용 기록용(한글 작성시 깨짐)
+DESCRIPTION = "wrn_28_10, data argumentation(custom, cutout(nholes=1, size=8))" # 예시: 실험 내용 기록용(한글 작성시 깨짐)
 
 LOAD_WEIGHT = False # 기존 모델 가중치를 가져올지 여부
 WEIGHT_PATH = "./densenet/save/20250602_153650/weight/DenseNet_24.pth" # 기존 모델 가중치 경로
@@ -59,30 +57,39 @@ print(device)
 ])'''
 
 train_transform = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),  # random crop + padding
-    transforms.RandomHorizontalFlip(p=0.5),      # horizontal flip
-    transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3),  # color jitter (-30% ~ +30%)
-    transforms.RandomRotation(15),         # random rotation (-15도 ~ + 15도)
+    transforms.Resize(224),
+    transforms.CenterCrop(224),
+    #transforms.RandomCrop(32, padding=4),  # random crop + padding
+    #transforms.RandomHorizontalFlip(p=0.5),      # horizontal flip
+    #transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3),  # color jitter (-30% ~ +30%)
+    #transforms.RandomRotation(15),         # random rotation (-15도 ~ + 15도)
     transforms.ToTensor(),                 # convert to tensor (img.shape를 (C, H, W)로 바꿔줌)
-    transforms.RandomApply([Cutout(n_holes=1, length=10)], p=0.25), # Cutout 기법 확률적으로 적용
-    transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))  # CIFAR-100 mean/std
+    #transforms.RandomApply([Cutout(n_holes=1, length=10)], p=0.25), # Cutout 기법 확률적으로 적용
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # ImageNet mean/std
 ])
 
 test_transform = transforms.Compose([
+    transforms.Resize(224),
+    transforms.CenterCrop(224),
     transforms.ToTensor(),
-    transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 train = CIFAR100(root='./data', train=True, download=True, transform=train_transform)
 test = CIFAR100(root='./data', train=False, download=True, transform=test_transform)
 
-train_loader = DataLoader(train, batch_size=256, shuffle=True)
-test_loader = DataLoader(test, batch_size=256, shuffle=False)
+train_loader = DataLoader(train, batch_size=256, shuffle=True, num_workers=2)
+test_loader = DataLoader(test, batch_size=256, shuffle=False, num_workers=2)
 
 ###################################### model setting ##############################################################
 
-model = densenet_custom()
+model = models.resnet50(pretrained=True)
+model.fc = nn.Linear(model.fc.in_features, 100)
 model = model.to(device)
+
+# 전체 fine-tune
+for param in model.parameters():
+    param.requires_grad = True
 
 # 기존의 모델 로드할 경우
 if LOAD_WEIGHT: 
@@ -93,14 +100,15 @@ if LOAD_WEIGHT:
 
 ###################################### train parameter setting #########################################################
 cfg = {
-    'epoch': 200, # epoch 크기가 달라지면 CosineAnnealingLR 부분도 달라짐..!
-    'lr': 0.1,
-    'weight_decay': 5e-4
+    'epoch': 100, # epoch 크기가 달라지면 CosineAnnealingLR 부분도 달라짐..!
+    'lr': 0.001,
+    'weight_decay': 5e-4,
+    'momentum': 0.9
 }
 
 # Loss and optimizer
+optimizer = optim.SGD(model.parameters(), lr=cfg['lr'], momentum=cfg['momentum'])
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.AdamW(model.parameters(), lr=cfg['lr'], weight_decay=cfg['weight_decay'])
 
 # Scheduler
 scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg['epoch'])
@@ -109,15 +117,15 @@ scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg['epoch'])
 
 timestamp = datetime.now().strftime('%m%d_%H%M')
 
-save_folder = f"./densenet/save/{timestamp}" 
-weight_folder = f"./densenet/save/{timestamp}/weight"
+save_folder = f"./wideResnet/save/{timestamp}" 
+weight_folder = f"./wideResnet/save/{timestamp}/weight"
 if (LOAD_WEIGHT==False):  
     os.makedirs(weight_folder, exist_ok=True) # 현재 시간으로 폴더 생성
     log_file_path = os.path.join(save_folder, 'log.txt')
 
     # log.txt에 모델 정보 기록
     with open(log_file_path, 'a') as log_file:
-        log_file.write('model: Dense Net custom\n')
+        log_file.write('model: WideResNet_28_10\n')
         log_file.write(f'description: {DESCRIPTION}\n\n')
         log_file.write(str(cfg) + '\n\n')
     

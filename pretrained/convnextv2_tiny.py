@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 from torchvision.datasets.cifar import CIFAR100
 from torchvision.transforms import ToTensor
 
-from utils.earlystop import EarlyStop
+from earlystop import EarlyStop
+import timm
 import torchvision.transforms as transforms
-from densenet import densenet_custom, DenseNet121
-from data_augmentation import Cutout
+#from data_augmentation import Cutout
 
 import torch
 import torch.nn as nn
@@ -32,10 +32,10 @@ def set_seed(seed=0):
 set_seed()
 
 ###################################### model setting #############################################################
-DESCRIPTION = "DenseNet growth=24, data argumentation(custom, cutout(nholes=1, size=8))" # 예시: 실험 내용 기록용(한글 작성시 깨짐)
+DESCRIPTION = "convnextv2_tiny, data argumentation(custom, cutout(nholes=1, size=8))" # 예시: 실험 내용 기록용(한글 작성시 깨짐)
 
-LOAD_WEIGHT = False # 기존 모델 가중치를 가져올지 여부
-WEIGHT_PATH = "./densenet/save/20250602_153650/weight/DenseNet_24.pth" # 기존 모델 가중치 경로
+LOAD_WEIGHT = True # 기존 모델 가중치를 가져올지 여부
+WEIGHT_PATH = "./pretrained/save/0603_1455/weight/best_weight.pth" # 기존 모델 가중치 경로
 
 ###################################### device setting ##########################################################
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"  
@@ -59,30 +59,86 @@ print(device)
 ])'''
 
 train_transform = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),  # random crop + padding
+    transforms.Resize(224),
+    transforms.CenterCrop(224),
+    #transforms.RandomCrop(32, padding=4),  # random crop + padding
     transforms.RandomHorizontalFlip(p=0.5),      # horizontal flip
     transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3),  # color jitter (-30% ~ +30%)
     transforms.RandomRotation(15),         # random rotation (-15도 ~ + 15도)
     transforms.ToTensor(),                 # convert to tensor (img.shape를 (C, H, W)로 바꿔줌)
-    transforms.RandomApply([Cutout(n_holes=1, length=10)], p=0.25), # Cutout 기법 확률적으로 적용
-    transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))  # CIFAR-100 mean/std
+    #transforms.RandomApply([Cutout(n_holes=1, length=10)], p=0.25), # Cutout 기법 확률적으로 적용
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 test_transform = transforms.Compose([
+    transforms.Resize(224),
+    transforms.CenterCrop(224),
     transforms.ToTensor(),
-    transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 train = CIFAR100(root='./data', train=True, download=True, transform=train_transform)
 test = CIFAR100(root='./data', train=False, download=True, transform=test_transform)
 
-train_loader = DataLoader(train, batch_size=256, shuffle=True)
-test_loader = DataLoader(test, batch_size=256, shuffle=False)
+train_loader = DataLoader(train, batch_size=256, shuffle=True, num_workers=2)
+test_loader = DataLoader(test, batch_size=256, shuffle=False, num_workers=2)
 
 ###################################### model setting ##############################################################
 
-model = densenet_custom()
-model = model.to(device)
+model = timm.create_model('convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
+
+num_features = model.head.in_features
+# ConvNeXt-Tiny의 마지막 head는 일반적으로 Linear(in_features=768, out_features=1000) 구조
+
+# 새 head 구성 (입력은 B x 768 이 되어야 함)
+custom_head = nn.Sequential(
+    nn.Linear(num_features, 2048),
+    nn.ReLU(),
+    nn.Dropout(p=0.2),
+    nn.Linear(2048, 1024),
+    nn.ReLU(),
+    nn.Dropout(p=0.2),
+    nn.Linear(1024, 100, bias=False),
+)
+
+# 기존 head 제거
+model.head = nn.Identity()
+
+# 최종 모델 정의 (풀링 포함 수동 정의)
+class ConvNeXtForCIFAR(nn.Module):
+    def __init__(self, backbone, head):
+        super().__init__()
+        self.backbone = backbone
+        self.pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.flatten = nn.Flatten()
+        self.head = head
+
+    def forward(self, x):
+        x = self.backbone.forward_features(x)  # [B, C, H, W]
+        x = self.pool(x)                       # [B, C, 1, 1]
+        x = self.flatten(x)                    # [B, C]
+        x = self.head(x)                       # [B, 100]
+        return x
+'''
+for param in model.parameters():
+    param.requires_grad = True  # 모든 층 fine-tune / OOM 에러 발생
+        
+'''
+for param in model.parameters():
+    param.requires_grad = False
+'''
+# 마지막 1~2개 스테이지만 학습
+for param in model.stages[2].parameters():
+    param.requires_grad = True
+'''
+for param in model.stages[3].parameters():
+    param.requires_grad = True
+
+# head는 항상 학습
+for param in model.head.parameters():
+    param.requires_grad = True
+    
+model = ConvNeXtForCIFAR(model, custom_head).to(device)
 
 # 기존의 모델 로드할 경우
 if LOAD_WEIGHT: 
@@ -93,8 +149,8 @@ if LOAD_WEIGHT:
 
 ###################################### train parameter setting #########################################################
 cfg = {
-    'epoch': 200, # epoch 크기가 달라지면 CosineAnnealingLR 부분도 달라짐..!
-    'lr': 0.1,
+    'epoch': 100, # epoch 크기가 달라지면 CosineAnnealingLR 부분도 달라짐..!
+    'lr': 0.001,
     'weight_decay': 5e-4
 }
 
@@ -109,20 +165,24 @@ scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg['epoch'])
 
 timestamp = datetime.now().strftime('%m%d_%H%M')
 
-save_folder = f"./densenet/save/{timestamp}" 
-weight_folder = f"./densenet/save/{timestamp}/weight"
+save_folder = f"./pretrained/save/{timestamp}" 
+weight_folder = f"./pretrained/save/{timestamp}/weight"
 if (LOAD_WEIGHT==False):  
     os.makedirs(weight_folder, exist_ok=True) # 현재 시간으로 폴더 생성
     log_file_path = os.path.join(save_folder, 'log.txt')
 
     # log.txt에 모델 정보 기록
     with open(log_file_path, 'a') as log_file:
-        log_file.write('model: Dense Net custom\n')
+        log_file.write('model: ConvNext v2 tiny\n')
         log_file.write(f'description: {DESCRIPTION}\n\n')
         log_file.write(str(cfg) + '\n\n')
+        for name, param in model.named_parameters():
+            print(name, param.requires_grad)
+            log_file.write(f'{name} - {param.requires_grad}\n')
+        log_file.write('\n')
     
 ###################################### training loop #########################################################
-#earlystop = EarlyStop()
+earlystop = EarlyStop()
 best_valid_loss = float('inf')
 
 best_valid_acc = 0.0
@@ -187,16 +247,16 @@ if (LOAD_WEIGHT==False):
             print(f'--> Best model saved at epoch {epoch+1} with acc {best_valid_acc:.2f}')
             
         # Early Stopping
-        '''if not earlystop.update_patience(best_valid_loss, val_loss):
+        if not earlystop.update_patience(best_valid_loss, val_loss):
             print("Early Stop.")
-            break'''
+            break
             
         best_valid_loss = min(best_valid_loss, val_loss)
     
 ###################################### save Loss & Accuracy graph / Model weights #########################################################
 # Saving model weights
 if(LOAD_WEIGHT==False):
-    MODEL_PATH = os.path.join(weight_folder, "DenseNet_24.pth")
+    MODEL_PATH = os.path.join(weight_folder, "ConvNextv2_tiny.pth")
     torch.save(model.state_dict(), MODEL_PATH)
 
     # Plotting
