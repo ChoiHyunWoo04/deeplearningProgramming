@@ -9,9 +9,13 @@ from torchvision.datasets.cifar import CIFAR100
 from torchvision.transforms import ToTensor
 
 from earlystop import EarlyStop
-import timm
 import torchvision.transforms as transforms
-#from data_augmentation import Cutout
+from torchvision.transforms.autoaugment import RandAugment
+from data_augmentation import Cutout
+
+import timm
+from timm.loss import SoftTargetCrossEntropy
+from timm.data import Mixup
 
 import torch
 import torch.nn as nn
@@ -32,10 +36,11 @@ def set_seed(seed=0):
 set_seed()
 
 ###################################### model setting #############################################################
-DESCRIPTION = "convnextv2_tiny, data argumentation(custom, cutout(nholes=1, size=8))" # 예시: 실험 내용 기록용(한글 작성시 깨짐)
+DESCRIPTION = "convnextv2_small, data argumentation(RandAugment, mixup, cutout(nholes=1, size=56)), gradual unfreeze(epoch=7), smoothing=0.1" # 예시: 실험 내용 기록용(한글 작성시 깨짐)
 
-LOAD_WEIGHT = True # 기존 모델 가중치를 가져올지 여부
-WEIGHT_PATH = "./pretrained/save/0603_1455/weight/best_weight.pth" # 기존 모델 가중치 경로
+LOAD_WEIGHT = False # 기존 모델 가중치를 가져올지 여부
+weight_save_path = './pretrained/save/0604_2055/0604_2055'
+WEIGHT_PATH = "./pretrained/save/0604_2055/weight/best_weight.pth" # 기존 모델 가중치 경로
 
 ###################################### device setting ##########################################################
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"  
@@ -52,27 +57,52 @@ device = get_recommended_device()
 print(device)
 
 ###################################### data setting ###########################################################
-'''train_transform = transforms.Compose([
+'''
+train_transform = transforms.Compose([
     transforms.AutoAugment(policy=transforms.AutoAugmentPolicy.CIFAR10),
     transforms.ToTensor(),
     transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))
-])'''
+])
 
 train_transform = transforms.Compose([
     transforms.Resize(224),
     transforms.CenterCrop(224),
-    #transforms.RandomCrop(32, padding=4),  # random crop + padding
+    transforms.RandomCrop(224, padding=28),  # random crop + padding
     transforms.RandomHorizontalFlip(p=0.5),      # horizontal flip
     transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3),  # color jitter (-30% ~ +30%)
     transforms.RandomRotation(15),         # random rotation (-15도 ~ + 15도)
     transforms.ToTensor(),                 # convert to tensor (img.shape를 (C, H, W)로 바꿔줌)
-    #transforms.RandomApply([Cutout(n_holes=1, length=10)], p=0.25), # Cutout 기법 확률적으로 적용
+    transforms.RandomApply([Cutout(n_holes=1, length=56)], p=0.25), # Cutout 기법 확률적으로 적용
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+'''
+
+def cutout_fn(inputs, n_holes=1, length=56):
+    for i in range(inputs.size(0)):
+        inputs[i] = Cutout(n_holes=n_holes, length=length)(inputs[i])
+    return inputs
+
+mixup_fn = Mixup(
+    mixup_alpha=0.8,       # Mixup용 Beta 분포 계수
+    cutmix_alpha=1.0,      # CutMix용 Beta 분포 계수
+    cutmix_minmax=None,    # CutMix 박스 크기 제어 (None이면 무작위 비율)
+    prob=0.5,              # Mixup/CutMix 적용 확률 (0.5로 낮추면 확률적 적용 가능)
+    switch_prob=0.5,       # Mixup과 CutMix 중 무엇을 쓸지 선택하는 확률
+    mode='batch',          # 'batch': 전체에 동일한 라벨 혼합, 'pair': 페어마다 혼합, 'elem': 각각 혼합
+    label_smoothing=0.1,   # Label smoothing 값 (CrossEntropyLoss와 유사)
+    num_classes=100        # 클래스 수
+)
+
+train_transform = transforms.Compose([
+    transforms.Resize(224),
+    RandAugment(num_ops=2, magnitude=9),  # or AutoAugment
+    transforms.ToTensor(),                 # convert to tensor (img.shape를 (C, H, W)로 바꿔줌)
+    #transforms.RandomApply([Cutout(n_holes=1, length=56)], p=0.25), # Cutout 기법 확률적으로 적용
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 test_transform = transforms.Compose([
     transforms.Resize(224),
-    transforms.CenterCrop(224),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
@@ -85,20 +115,29 @@ test_loader = DataLoader(test, batch_size=256, shuffle=False, num_workers=2)
 
 ###################################### model setting ##############################################################
 
-model = timm.create_model('convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
+model = timm.create_model('convnext_small.fb_in1k', pretrained=True)
 
 num_features = model.head.in_features
 # ConvNeXt-Tiny의 마지막 head는 일반적으로 Linear(in_features=768, out_features=1000) 구조
 
 # 새 head 구성 (입력은 B x 768 이 되어야 함)
 custom_head = nn.Sequential(
-    nn.Linear(num_features, 2048),
-    nn.ReLU(),
-    nn.Dropout(p=0.2),
+    nn.Linear(num_features, 3072),
+    nn.GELU(), # ReLU는 단순하지만 정보 손실이 큼. GELU 또는 SiLU는 smoother하여 성능이 더 나은 경우가 많음 (특히 transformer 기반 백본에서).
+    nn.BatchNorm1d(3072),
+    nn.Dropout(p=0.4),
+
+    nn.Linear(3072, 2048),
+    nn.GELU(),
+    nn.BatchNorm1d(2048),
+    nn.Dropout(p=0.4),
+
     nn.Linear(2048, 1024),
-    nn.ReLU(),
-    nn.Dropout(p=0.2),
-    nn.Linear(1024, 100, bias=False),
+    nn.GELU(),
+    nn.BatchNorm1d(1024),
+    nn.Dropout(p=0.3),
+
+    nn.Linear(1024, 100),
 )
 
 # 기존 head 제거
@@ -119,25 +158,22 @@ class ConvNeXtForCIFAR(nn.Module):
         x = self.flatten(x)                    # [B, C]
         x = self.head(x)                       # [B, 100]
         return x
-'''
-for param in model.parameters():
-    param.requires_grad = True  # 모든 층 fine-tune / OOM 에러 발생
-        
-'''
+    
+    def get_stage(self, idx):
+        return self.backbone.stages[idx]
+
 for param in model.parameters():
     param.requires_grad = False
-'''
-# 마지막 1~2개 스테이지만 학습
-for param in model.stages[2].parameters():
-    param.requires_grad = True
-'''
-for param in model.stages[3].parameters():
-    param.requires_grad = True
 
 # head는 항상 학습
 for param in model.head.parameters():
     param.requires_grad = True
-    
+'''
+for m in model.modules():
+    if isinstance(m, (nn.LayerNorm, nn.BatchNorm2d)): # 1 에폭에 5시간
+        for p in m.parameters():
+            p.requires_grad = True
+'''         
 model = ConvNeXtForCIFAR(model, custom_head).to(device)
 
 # 기존의 모델 로드할 경우
@@ -150,13 +186,16 @@ if LOAD_WEIGHT:
 ###################################### train parameter setting #########################################################
 cfg = {
     'epoch': 100, # epoch 크기가 달라지면 CosineAnnealingLR 부분도 달라짐..!
-    'lr': 0.001,
-    'weight_decay': 5e-4
+    'lr': 0.0004,
+    'weight_decay': 0.01
 }
 
 # Loss and optimizer
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.AdamW(model.parameters(), lr=cfg['lr'], weight_decay=cfg['weight_decay'])
+criterion = nn.CrossEntropyLoss() # label_smoothing=0.1
+soft_criterion = SoftTargetCrossEntropy()
+# 옵티마이저 정의 (head만 먼저 학습)
+optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=cfg['lr'], weight_decay=cfg['weight_decay'])
+#optimizer = optim.AdamW(model.parameters(), lr=cfg['lr'], weight_decay=cfg['weight_decay'])
 
 # Scheduler
 scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg['epoch'])
@@ -177,7 +216,6 @@ if (LOAD_WEIGHT==False):
         log_file.write(f'description: {DESCRIPTION}\n\n')
         log_file.write(str(cfg) + '\n\n')
         for name, param in model.named_parameters():
-            print(name, param.requires_grad)
             log_file.write(f'{name} - {param.requires_grad}\n')
         log_file.write('\n')
     
@@ -192,21 +230,54 @@ train_losses, test_losses = [], []
 train_accuracies, test_accuracies = [], []
 if (LOAD_WEIGHT==False):  
     for epoch in range(cfg['epoch']):
+        if epoch == 5: # 점진적으로 Unfreeze
+            for param in model.get_stage(3).parameters():
+                param.requires_grad = True
+            optimizer.add_param_group({'params': model.get_stage(3).parameters()})
+        '''
+        if epoch == 15: # 엄청 오래걸릴 것 같다.
+            print("Unfreezing normalization layers in stage2 blocks 6-8 only")
+            norm_params = []
+
+            for name, module in model.get_stage(2).named_modules():
+                if any(name.startswith(f'blocks.{i}') for i in [8]):
+                    if isinstance(module, (nn.LayerNorm, nn.BatchNorm2d, nn.GroupNorm)):
+                        for param in module.parameters():
+                            param.requires_grad = True
+                        norm_params += list(module.parameters())
+                        print(f"Unfrozen: stage2.{name}")
+
+            # 옵티마이저에 선택적 norm 레이어 추가
+            if norm_params:
+                optimizer.add_param_group({'params': norm_params})
+        '''
         model.train()
         running_loss, correct, total = 0.0, 0, 0
         for inputs, labels in tqdm(train_loader):
             inputs, labels = inputs.to(device), labels.to(device)
 
+            # hard label 저장 (int tensor, shape: [B])
+            hard_labels = labels
+            
+            # 확률적으로 mixup 적용
+            if mixup_fn is not None:
+                inputs, labels = mixup_fn(inputs, labels)
+                
+            # Cutout 확률적으로 적용
+            if np.random.rand() < 0.25:
+                inputs = cutout_fn(inputs)
+                
             optimizer.zero_grad()
             outputs = model(inputs)
-            loss = criterion(outputs, labels)
+            loss = soft_criterion(outputs, labels)
             loss.backward()
             optimizer.step()
 
+            # 정확도 계산 (soft label이 아니라 hard label 기준)
             running_loss += loss.item() * inputs.size(0)
             _, predicted = outputs.max(1)
-            total += labels.size(0)
-            correct += predicted.eq(labels).sum().item()
+            correct += predicted.eq(hard_labels).sum().item()
+            total += hard_labels.size(0)
 
         train_loss = running_loss / total
         train_acc = 100. * correct / total
@@ -235,7 +306,7 @@ if (LOAD_WEIGHT==False):
         scheduler.step()
 
         # save epoch info
-        result = f"Epoch [{epoch+1}/{cfg['epoch']}] Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}% | Valid Loss: {val_loss:.4f}, Valid Acc: {val_acc:.2f}% | Early Stop Count: "
+        result = f"Epoch [{epoch+1}/{cfg['epoch']}] Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}% | Valid Loss: {val_loss:.4f}, Valid Acc: {val_acc:.2f}% | Early Stop Count: {earlystop}"
         print(result)
         with open(log_file_path, 'a') as log_file:
             log_file.write(result + '\n')
@@ -288,7 +359,7 @@ if LOAD_WEIGHT:
 
     # 폴더 경로
     image_folder = './CImages'
-    output_file = f'{save_folder}.txt'
+    output_file = f'{weight_save_path}.txt'
     
     results = []
 
