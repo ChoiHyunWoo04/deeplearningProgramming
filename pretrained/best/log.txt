@@ -1,0 +1,45 @@
+model: ConvNext v2 tiny
+description: 'convnextv2_base.fcmae_ft_in22k_in1k', data argumentation(RandAugment, mixup, cutout(nholes=1, size=56)), gradual unfreeze(epoch=5), smoothing=0.1
+
+{'epoch': 100, 'lr': 0.0004, 0.00005, 'weight_decay': 0.01}
+
+
+Epoch [1/100] Train Loss: 2.2566, Train Acc: 56.89% | Valid Loss: 0.6189, Valid Acc: 84.85% | Early Stop Count: current patience : 0
+Epoch [2/100] Train Loss: 1.9687, Train Acc: 65.56% | Valid Loss: 0.5523, Valid Acc: 86.48% | Early Stop Count: current patience : 0
+Epoch [3/100] Train Loss: 2.0179, Train Acc: 62.34% | Valid Loss: 0.5209, Valid Acc: 86.54% | Early Stop Count: current patience : 0
+Epoch [4/100] Train Loss: 1.9916, Train Acc: 66.98% | Valid Loss: 0.5636, Valid Acc: 87.24% | Early Stop Count: current patience : 0
+Epoch [5/100] Train Loss: 1.8684, Train Acc: 68.80% | Valid Loss: 0.4936, Valid Acc: 87.22% | Early Stop Count: current patience : 1
+Epoch [6/100] Train Loss: 1.8077, Train Acc: 68.84% | Valid Loss: 0.4905, Valid Acc: 88.53% | Early Stop Count: current patience : 0
+Epoch [7/100] Train Loss: 1.7864, Train Acc: 68.96% | Valid Loss: 0.4647, Valid Acc: 88.85% | Early Stop Count: current patience : 0
+Epoch [8/100] Train Loss: 1.7184, Train Acc: 69.39% | Valid Loss: 0.4334, Valid Acc: 89.48% | Early Stop Count: current patience : 0
+Epoch [9/100] Train Loss: 1.6866, Train Acc: 72.70% | Valid Loss: 0.4318, Valid Acc: 89.61% | Early Stop Count: current patience : 0
+Epoch [10/100] Train Loss: 1.6756, Train Acc: 68.65% | Valid Loss: 0.4309, Valid Acc: 89.74% | Early Stop Count: current patience : 0
+Epoch [11/100] Train Loss: 1.7214, Train Acc: 70.79% | Valid Loss: 0.4285, Valid Acc: 89.72% | Early Stop Count: current patience : 0
+Epoch [12/100] Train Loss: 1.6095, Train Acc: 73.34% | Valid Loss: 0.4651, Valid Acc: 89.83% | Early Stop Count: current patience : 0
+Epoch [13/100] Train Loss: 1.6577, Train Acc: 70.80% | Valid Loss: 0.4149, Valid Acc: 90.26% | Early Stop Count: current patience : 1
+Epoch [14/100] Train Loss: 1.5947, Train Acc: 73.08% | Valid Loss: 0.4295, Valid Acc: 90.30% | Early Stop Count: current patience : 0
+Epoch [15/100] Train Loss: 1.6131, Train Acc: 72.81% | Valid Loss: 0.4288, Valid Acc: 90.05% | Early Stop Count: current patience : 1
+Epoch [16/100] Train Loss: 1.6569, Train Acc: 72.25% | Valid Loss: 0.4328, Valid Acc: 90.09% | Early Stop Count: current patience : 2
+Epoch [17/100] Train Loss: 1.6047, Train Acc: 76.63% | Valid Loss: 0.4658, Valid Acc: 90.35% | Early Stop Count: current patience : 3
+Epoch [18/100] Train Loss: 1.5649, Train Acc: 72.92% | Valid Loss: 0.4474, Valid Acc: 90.16% | Early Stop Count: current patience : 4
+Epoch [19/100] Train Loss: 1.6586, Train Acc: 75.48% | Valid Loss: 0.4463, Valid Acc: 90.58% | Early Stop Count: current patience : 5
+Epoch [20/100] Train Loss: 1.4910, Train Acc: 77.03% | Valid Loss: 0.4212, Valid Acc: 90.41% | Early Stop Count: current patience : 6
+Epoch [21/100] Train Loss: 1.5483, Train Acc: 79.93% | Valid Loss: 0.4235, Valid Acc: 90.49% | Early Stop Count: current patience : 7
+Epoch [22/100] Train Loss: 1.4820, Train Acc: 78.68% | Valid Loss: 0.4121, Valid Acc: 90.40% | Early Stop Count: current patience : 8
+Epoch [23/100] Train Loss: 1.6414, Train Acc: 74.09% | Valid Loss: 0.4579, Valid Acc: 90.22% | Early Stop Count: current patience : 0
+Epoch [24/100] Train Loss: 1.5624, Train Acc: 75.58% | Valid Loss: 0.4503, Valid Acc: 90.69% | Early Stop Count: current patience : 1
+Epoch [25/100] Train Loss: 1.5459, Train Acc: 74.45% | Valid Loss: 0.4140, Valid Acc: 90.50% | Early Stop Count: current patience : 2
+Epoch [26/100] Train Loss: 1.5570, Train Acc: 73.54% | Valid Loss: 0.4237, Valid Acc: 90.86% | Early Stop Count: current patience : 3
+Epoch [27/100] Train Loss: 1.5346, Train Acc: 77.04% | Valid Loss: 0.4211, Valid Acc: 90.65% | Early Stop Count: current patience : 4
+Epoch [28/100] Train Loss: 1.5907, Train Acc: 72.62% | Valid Loss: 0.4117, Valid Acc: 90.63% | Early Stop Count: current patience : 5
+Epoch [29/100] Train Loss: 1.4019, Train Acc: 81.12% | Valid Loss: 0.4068, Valid Acc: 90.65% | Early Stop Count: current patience : 0
+Epoch [30/100] Train Loss: 1.5175, Train Acc: 79.52% | Valid Loss: 0.4315, Valid Acc: 90.83% | Early Stop Count: current patience : 0
+Epoch [31/100] Train Loss: 1.5338, Train Acc: 76.70% | Valid Loss: 0.4223, Valid Acc: 90.79% | Early Stop Count: current patience : 1
+Epoch [32/100] Train Loss: 1.5213, Train Acc: 73.04% | Valid Loss: 0.4567, Valid Acc: 90.60% | Early Stop Count: current patience : 2
+Epoch [33/100] Train Loss: 1.4898, Train Acc: 79.22% | Valid Loss: 0.4282, Valid Acc: 90.97% | Early Stop Count: current patience : 3
+Epoch [34/100] Train Loss: 1.5433, Train Acc: 75.80% | Valid Loss: 0.4771, Valid Acc: 90.72% | Early Stop Count: current patience : 4
+Epoch [35/100] Train Loss: 1.6127, Train Acc: 71.64% | Valid Loss: 0.4507, Valid Acc: 90.79% | Early Stop Count: current patience : 5
+Epoch [36/100] Train Loss: 1.5320, Train Acc: 76.54% | Valid Loss: 0.4239, Valid Acc: 90.87% | Early Stop Count: current patience : 6
+Epoch [37/100] Train Loss: 1.5664, Train Acc: 75.25% | Valid Loss: 0.4709, Valid Acc: 91.04% | Early Stop Count: current patience : 7
+Epoch [38/100] Train Loss: 1.4819, Train Acc: 78.68% | Valid Loss: 0.4491, Valid Acc: 90.91% | Early Stop Count: current patience : 8
+Epoch [39/100] Train Loss: 1.3936, Train Acc: 81.08% | Valid Loss: 0.4210, Valid Acc: 90.92% | Early Stop Count: current patience : 9
